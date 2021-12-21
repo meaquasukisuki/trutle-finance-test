@@ -5,7 +5,6 @@ import { MoralisProvider } from "react-moralis";
 import "./index.css";
 import QuickStart from "components/QuickStart";
 import { RecoilRoot } from "recoil";
-import { Spin } from "antd";
 import LoadingSpin from "pages/components/LoadingSpin";
 
 /** Get your free Moralis Account https://moralis.io/ */

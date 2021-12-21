@@ -23,7 +23,6 @@ const HomePage = () => {
 	const [currentPageTokensWithPrice, setCurrentPageToken] =
 		useState(currentPageTokens);
 	const [tableLoading, setTableLoading] = useState(true);
-	const [searchMethod, setSearchMethod] = useState("name");
 	const history = useHistory();
 
 	async function getTokenPositions(tokenAddress) {
@@ -167,9 +166,6 @@ const HomePage = () => {
 
 	const { Option } = Select;
 
-	function handleSearchMethodChange(value) {
-		setSearchMethod(value.toLowerCase());
-	}
 	function handleTokenSelect(value, option) {
 		const address = option.key;
 
@@ -184,23 +180,12 @@ const HomePage = () => {
 			>
 				<div>
 					<Select
-						defaultValue={searchMethod}
-						style={{ width: 200 }}
-						onChange={handleSearchMethodChange}
-						size="large"
-					>
-						<Option value="address">Address</Option>
-						<Option value="name">Name</Option>
-						<Option value="symbol">Symbol</Option>
-					</Select>
-					<Select
 						style={{
 							width: 400,
 						}}
 						size="large"
-						placeholder={`Search by ${searchMethod}`}
+						placeholder={`Search by name,symbol or address`}
 						showSearch
-						defaultValue=""
 						onSelect={handleTokenSelect}
 						optionFilterProp="children"
 						filterOption={(input, option) => {
@@ -217,15 +202,7 @@ const HomePage = () => {
 							return (
 								<Option
 									key={address.toLowerCase()}
-									value={
-										searchMethod === "name"
-											? name
-											: searchMethod === "symbol"
-											? symbol
-											: searchMethod === "address"
-											? address
-											: ""
-									}
+									value={JSON.stringify(token)}
 								>
 									<div>
 										<Text strong>{name}</Text>

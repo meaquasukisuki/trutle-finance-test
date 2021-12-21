@@ -1,10 +1,10 @@
-import { useEffect } from "react";
+import React, { Suspense, useEffect } from "react";
 import { useMoralis } from "react-moralis";
 import {
 	BrowserRouter as Router,
-	Switch,
 	Route,
 	Redirect,
+	Switch,
 } from "react-router-dom";
 import Account from "components/Account";
 import Chains from "components/Chains";
@@ -15,6 +15,7 @@ import InchDex from "components/InchDex";
 import NFTBalance from "components/NFTBalance";
 import Wallet from "components/Wallet";
 import { Layout, Tabs } from "antd";
+import { Switch as AntdSwitch } from "antd";
 import "antd/dist/antd.css";
 import NativeBalance from "components/NativeBalance";
 import "./style.css";
@@ -24,12 +25,16 @@ import Text from "antd/lib/typography/Text";
 import Ramper from "components/Ramper";
 import MenuItems from "./components/MenuItems";
 import HomePage from "pages/Home/Home";
-import { RecoilRoot } from "recoil";
+import { RecoilRoot, useRecoilState } from "recoil";
 import RecoilizeDebugger from "recoilize";
 import OneSetDetailsPage from "pages/OneSetDetailsPage/OneSetDetailsPage";
+import { BulbOutlined } from "@ant-design/icons";
+import { themeAtom } from "./selectors/UiSelectors.js";
+import themeValues from "./config/ThemeModes.js";
+
 const { Header, Footer } = Layout;
 
-const styles = {
+let styles = {
 	content: {
 		display: "flex",
 		justifyContent: "center",
@@ -39,11 +44,11 @@ const styles = {
 		padding: "10px",
 		height: "95vh",
 	},
+
 	header: {
 		position: "fixed",
 		zIndex: 1,
 		width: "100%",
-		background: "#fff",
 		display: "flex",
 		justifyContent: "space-between",
 		alignItems: "center",
@@ -60,6 +65,11 @@ const styles = {
 		fontWeight: "600",
 	},
 };
+
+const lightHeaderStyle = {
+	...styles.header,
+	backgroundColor: "white",
+};
 const App = ({ isServerInfo }) => {
 	const { isWeb3Enabled, enableWeb3, isAuthenticated, isWeb3EnableLoading } =
 		useMoralis();
@@ -69,81 +79,120 @@ const App = ({ isServerInfo }) => {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isAuthenticated, isWeb3Enabled]);
 
+	const [theme, setTheme] = useRecoilState(themeAtom);
+	const onThemeChange = (checked) => {
+		if (checked === true) {
+			setTheme(themeValues.light);
+			window.location.reload();
+		}
+		if (checked == false) {
+			setTheme(themeValues.dark);
+		}
+	};
+
+	const LightThemeComponent = React.lazy(() =>
+		import("./themes/light/LightTheme.jsx")
+	);
+
+	const DarkThemeComponent = React.lazy(() =>
+		import("./themes/dark/DarkTheme.jsx")
+	);
+
 	return (
-		<Layout style={{ height: "100vh", overflow: "auto" }}>
-			<Router>
-				<Header style={styles.header}>
-					{/* <Logo /> */}
-					<MenuItems />
-					<div style={styles.headerRight}>
-						<Chains />
-						<TokenPrice
-							address="0x1f9840a85d5af5bf1d1762f925bdaddc4201f984"
-							chain="eth"
-							image="https://cloudflare-ipfs.com/ipfs/QmXttGpZrECX5qCyXbBQiqgQNytVGeZW5Anewvh2jc4psg/"
-							size="40px"
+		<div>
+			<Suspense fallback={<span></span>}>
+				{theme === themeValues["dark"] ? (
+					<DarkThemeComponent />
+				) : (
+					<LightThemeComponent />
+				)}
+			</Suspense>
+			<Layout style={{ height: "100vh", overflow: "auto" }}>
+				<Router>
+					<Header
+						style={
+							theme === themeValues["light"] ? lightHeaderStyle : styles.header
+						}
+					>
+						{/* <Logo /> */}
+						<MenuItems />
+
+						<AntdSwitch
+							checkedChildren={<BulbOutlined />}
+							onChange={onThemeChange}
+							checked={theme == themeValues.light}
 						/>
-						<NativeBalance />
-						<Account />
+
+						<div style={styles.headerRight}>
+							<Chains />
+							<TokenPrice
+								address="0x1f9840a85d5af5bf1d1762f925bdaddc4201f984"
+								chain="eth"
+								image="https://cloudflare-ipfs.com/ipfs/QmXttGpZrECX5qCyXbBQiqgQNytVGeZW5Anewvh2jc4psg/"
+								size="40px"
+							/>
+							<NativeBalance />
+							<Account />
+						</div>
+					</Header>
+
+					<div style={styles.content}>
+						<Switch>
+							<Route exact path="/home">
+								<HomePage />
+								{/* <QuickStart isServerInfo={isServerInfo} /> */}
+							</Route>
+
+							<Route path="/wallet">
+								<Wallet />
+							</Route>
+							<Route path="/1inch">
+								<Tabs defaultActiveKey="1" style={{ alignItems: "center" }}>
+									<Tabs.TabPane tab={<span>Ethereum</span>} key="1">
+										<InchDex chain="eth" />
+									</Tabs.TabPane>
+									<Tabs.TabPane tab={<span>Binance Smart Chain</span>} key="2">
+										<InchDex chain="bsc" />
+									</Tabs.TabPane>
+									<Tabs.TabPane tab={<span>Polygon</span>} key="3">
+										<InchDex chain="polygon" />
+									</Tabs.TabPane>
+								</Tabs>
+							</Route>
+							<Route path="/erc20balance">
+								<ERC20Balance />
+							</Route>
+							<Route path="/onramp">
+								<Ramper />
+							</Route>
+							<Route path="/erc20transfers">
+								<ERC20Transfers />
+							</Route>
+							<Route path="/nftBalance">
+								<NFTBalance />
+							</Route>
+							<Route path="/contract">
+								<Contract />
+							</Route>
+							<Route
+								path="/setDetailInfo/:setAddress"
+								component={OneSetDetailsPage}
+							></Route>
+							<Route path="/">
+								<Redirect to="/home" />
+							</Route>
+							<Route path="/ethereum-boilerplate">
+								<Redirect to="/quickstart" />
+							</Route>
+							<Route path="/nonauthenticated">
+								<>Please login using the "Authenticate" button</>
+							</Route>
+						</Switch>
 					</div>
-				</Header>
-
-				<div style={styles.content}>
-					<Switch>
-						<Route exact path="/home">
-							<HomePage />
-							{/* <QuickStart isServerInfo={isServerInfo} /> */}
-						</Route>
-
-						<Route path="/wallet">
-							<Wallet />
-						</Route>
-						<Route path="/1inch">
-							<Tabs defaultActiveKey="1" style={{ alignItems: "center" }}>
-								<Tabs.TabPane tab={<span>Ethereum</span>} key="1">
-									<InchDex chain="eth" />
-								</Tabs.TabPane>
-								<Tabs.TabPane tab={<span>Binance Smart Chain</span>} key="2">
-									<InchDex chain="bsc" />
-								</Tabs.TabPane>
-								<Tabs.TabPane tab={<span>Polygon</span>} key="3">
-									<InchDex chain="polygon" />
-								</Tabs.TabPane>
-							</Tabs>
-						</Route>
-						<Route path="/erc20balance">
-							<ERC20Balance />
-						</Route>
-						<Route path="/onramp">
-							<Ramper />
-						</Route>
-						<Route path="/erc20transfers">
-							<ERC20Transfers />
-						</Route>
-						<Route path="/nftBalance">
-							<NFTBalance />
-						</Route>
-						<Route path="/contract">
-							<Contract />
-						</Route>
-						<Route
-							path="/setDetailInfo/:setAddress"
-							component={OneSetDetailsPage}
-						></Route>
-						<Route path="/">
-							<Redirect to="/home" />
-						</Route>
-						<Route path="/ethereum-boilerplate">
-							<Redirect to="/quickstart" />
-						</Route>
-						<Route path="/nonauthenticated">
-							<>Please login using the "Authenticate" button</>
-						</Route>
-					</Switch>
-				</div>
-			</Router>
-			<Footer style={{ textAlign: "center" }}></Footer>
-		</Layout>
+				</Router>
+				<Footer style={{ textAlign: "center" }}></Footer>
+			</Layout>
+		</div>
 	);
 };
 

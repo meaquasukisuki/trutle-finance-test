@@ -4,7 +4,7 @@ import LoadingSpin from "pages/components/LoadingSpin.jsx";
 
 import React, { useEffect, useState } from "react";
 import { useRouteMatch } from "react-router-dom";
-import { useRecoilValue } from "recoil";
+import { useRecoilValue, useRecoilValueLoadable } from "recoil";
 
 import selectors from "../components/selectors/selectors.js";
 import tokenAPI from "../../services/TokenAPI/TokenApis.js";
@@ -25,8 +25,8 @@ const OneSetDetailsPage = () => {
 		setAddress = match.params.setAddress;
 	}
 	const getTokenPositions = useGetTokenPositions();
-	const allTokens = useRecoilValue(allTokenSets);
-	const allCoins = useRecoilValue(allCoinsAtom);
+	const allTokensLoadable = useRecoilValueLoadable(allTokenSets);
+	const allCoinsLoadable = useRecoilValueLoadable(allCoinsAtom);
 	const currentToken = useRecoilValue(tokenInfoState(setAddress));
 	const [tokenBasicInfo, setTokenBasicInfo] = useState({
 		tokenInfo: {},
@@ -37,9 +37,16 @@ const OneSetDetailsPage = () => {
 
 	const [loading, setLoading] = useState(true);
 
+	let allTokens = [];
+	let allCoins = [];
+
 	useEffect(() => {
 		(async () => {
-			if (setAddress.length) {
+			if (
+				setAddress.length &&
+				allTokensLoadable.state == "hasValue" &&
+				allCoinsLoadable.state == "hasValue"
+			) {
 				const tokenPositions = await getTokenPositions(setAddress);
 				let coinPricesInfo = {};
 				for (let index = 0; index < tokenPositions.length; index++) {
@@ -121,11 +128,26 @@ const OneSetDetailsPage = () => {
 		});
 
 		return () => {};
-	}, [setAddress, allTokens]);
+	}, [allTokensLoadable.state, allCoinsLoadable.state]);
+
+	switch (allTokensLoadable.state) {
+		case "loading":
+			return <LoadingSpin />;
+		case "hasValue":
+			allTokens = allTokensLoadable.contents;
+	}
+
+	switch (allCoinsLoadable.state) {
+		case "loading":
+			return <LoadingSpin />;
+		case "hasValue":
+			allCoins = allCoinsLoadable.contents;
+	}
 
 	const columns = [
 		{
 			title: "Token Name",
+			key: "Token Name",
 			render: (text, record) => {
 				const { logoUri, name } = record;
 				return (
@@ -162,6 +184,7 @@ const OneSetDetailsPage = () => {
 		},
 		{
 			title: "Quantity per set",
+			key: "Quantity per set",
 			render: (text, record) => {
 				const { quantity, symbol } = record;
 				if (
@@ -183,6 +206,7 @@ const OneSetDetailsPage = () => {
 		},
 		{
 			title: "Token Price",
+			key: "Token Price",
 			render: (text, record) => {
 				const { tokenPrice } = record;
 				if (
@@ -199,6 +223,7 @@ const OneSetDetailsPage = () => {
 		},
 		{
 			title: "Current Price Allocation",
+			key: "Current Price Allocation",
 			render: (text, record) => {
 				const { currentPricePercent } = record;
 				if (
@@ -219,6 +244,7 @@ const OneSetDetailsPage = () => {
 		},
 		{
 			title: "Total Price (per set)",
+			key: "Total Price (per set)",
 			render: (text, record) => {
 				const { totalPrice } = record;
 				return <Text strong>${Number(totalPrice).toFixed(2)}</Text>;
@@ -285,19 +311,17 @@ const OneSetDetailsPage = () => {
 
 	return (
 		<>
-			{loading ? (
-				<LoadingSpin />
-			) : (
-				<div>
-					<Table
-						pagination={false}
-						columns={columns}
-						// rowSelection={{ ...rowSelection, checkStrictly }}
-						dataSource={tableData}
-						style={styles.tableStyle}
-					/>
-				</div>
-			)}
+			{
+				<Table
+					pagination={false}
+					loading={loading}
+					columns={columns}
+					// rowSelection={{ ...rowSelection, checkStrictly }}
+					dataSource={tableData}
+					rowKey={"key"}
+					style={styles.tableStyle}
+				/>
+			}
 		</>
 	);
 };
